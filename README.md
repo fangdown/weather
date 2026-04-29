@@ -6,6 +6,21 @@ Next.js 应用：通过和风天气 [GeoAPI 城市搜索](https://dev.qweather.c
 
 ---
 
+## 访问路径（子路径部署）
+
+应用配置为 **`basePath: /weather`**，与线上地址一致：
+
+| 环境 | 地址 |
+|------|------|
+| 生产 | [http://fangdu.chat/weather](http://fangdu.chat/weather) |
+| 本地开发 | [http://localhost:3000/weather](http://localhost:3000/weather) |
+
+访问站点根路径 **`/`** 时会 **302 重定向到 `/weather`**，避免误以为部署失败。
+
+前端请求 API 使用 `withBasePath("/api/weather-history")`，实际为 **`/weather/api/weather-history`**。若在 **Nginx / CDN** 后托管，请把以 `/weather` 开头的请求转发到本 Next 进程（并放行 `/_next` 静态资源，见 [Next.js basePath](https://nextjs.org/docs/app/api-reference/next-config-js/basePath)）。
+
+---
+
 ## 技术栈
 
 | 层级 | 选型 |
@@ -24,7 +39,7 @@ Next.js 应用：通过和风天气 [GeoAPI 城市搜索](https://dev.qweather.c
 
 ### 整体数据流
 
-1. 浏览器在首页（`src/app/page.tsx` → `WeatherClient`）填写城市（及可选 `adm` / `range`），`POST` 同源的 **`/api/weather-history`**。
+1. 浏览器在 **`/weather`** 首页（`src/app/page.tsx` → `WeatherClient`）填写城市（及可选 `adm` / `range`），`POST` 同源的 **`/weather/api/weather-history`**（由 `src/lib/base-path.ts` 拼接 `basePath`）。
 2. **Route Handler**（`src/app/api/weather-history/route.ts`，仅服务端）读取 `QWEATHER_*`、`DEEPSEEK_*` 环境变量，**不向浏览器暴露密钥**。
 3. **城市解析**：`src/lib/qweather.ts` 请求 `GET {QWEATHER_API_HOST}/geo/v2/city/lookup`，取匹配结果中的 **LocationID**（当前实现取第一条）。
 4. **历史天气**：对「昨天」起连续 10 天的 `yyyyMMdd`（`src/lib/dates.ts`），请求 `GET .../v7/historical/weather?location=&date=`；并发上限为 **3**，单日结果带 **内存短 TTL 缓存**（`src/lib/cache.ts`）。
@@ -87,7 +102,7 @@ npm install
 npm run dev
 ```
 
-浏览器打开 [http://localhost:3000](http://localhost:3000)，输入城市后查询。
+浏览器打开 [http://localhost:3000/weather](http://localhost:3000/weather)（或根路径 [http://localhost:3000/](http://localhost:3000/) 将跳转至 `/weather`），输入城市后查询。
 
 ```bash
 npm run build   # 生产构建
@@ -98,7 +113,7 @@ npm run lint    # 代码检查
 
 ## HTTP API
 
-`POST /api/weather-history`
+`POST /weather/api/weather-history`（部署在域名根时完整路径如上；`basePath` 见 `next.config.ts`。）
 
 - **Headers**：`Content-Type: application/json`
 - **Body**：`{ "city": "北京", "adm"?: "黑龙江", "range"?: "cn" }`

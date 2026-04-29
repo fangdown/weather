@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { withBasePath } from "@/lib/base-path";
 import type { WeatherHistoryResponseBody } from "@/lib/types";
 
 function Spinner({ className = "size-4" }: { className?: string }) {
@@ -65,7 +66,7 @@ export function WeatherClient() {
     setError(null);
     setData(null);
     try {
-      const res = await fetch("/api/weather-history", {
+      const res = await fetch(withBasePath("/api/weather-history"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
